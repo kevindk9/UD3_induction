@@ -30,13 +30,15 @@
 #include "cli_common.h"
 #include "TTerm.h"
 #include "helper/teslaterm.h"
+
+#define QCW_RAMP_SAMPLES (400)
     
 typedef struct
 {
     uint8_t changed;
     uint16_t index;
     uint16_t stop_index;
-    uint8_t data[400];
+    uint8_t data[QCW_RAMP_SAMPLES];
 } ramp_params;
 
 ramp_params volatile ramp; //added volatile

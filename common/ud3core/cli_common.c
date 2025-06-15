@@ -180,6 +180,7 @@ void init_config(){
     param.qcw_ramp = 200;
     param.qcw_freq = 5000;
     param.qcw_vol = 0;
+    param.qcw_pw = 0;
     
     update_ivo();
     
@@ -211,6 +212,7 @@ parameter_entry confparam[] = {
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_max"         , param.qcw_max                 , 0      ,255    ,0      ,callback_rampFunction       ,"QCW Ramp end value")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_freq"        , param.qcw_freq                , 0      ,40000  ,10     ,callback_rampFunction       ,"QCW Ramp modulation frequency")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_vol"         , param.qcw_vol                 , 0      ,255    ,0      ,callback_rampFunction       ,"QCW Ramp modulation volume")
+    ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_pw"          , param.qcw_pw                  , 0      ,5000   ,100    ,callback_rampFunction       ,"QCW pulse width")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_repeat"      , param.qcw_repeat              , 0      ,1000   ,0      ,NULL                        ,"QCW pulse repeat time [ms] <100=single shot")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"synth"           , param.synth                   , 0      ,3      ,0      ,callback_SynthFunction      ,"0=off 1=MIDI 2=SID 3=TR")    
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"sid_hpv_enabled" , SID_filterData.hpvEnabledGlobally, 0      ,1      ,0      ,NULL                     ,"use hpv for playing square sid voices")    
@@ -496,6 +498,7 @@ uint8_t callback_ConfigFunction(parameter_entry * params, uint8_t index, TERMINA
     tsk_analog_recalc_drive_top(configuration.drive_factor);
     
     if(configuration.is_qcw){
+       ramp.changed = pdTRUE;
         qcw_regenerate_ramp();   
     }
     

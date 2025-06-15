@@ -78,6 +78,7 @@ struct config_struct{
     uint16_t watchdog_timeout;
     uint16_t max_tr_pw;
     uint16_t max_tr_prf;
+    // Unit: 10 us
     uint16_t max_qcw_pw;
     uint16_t max_tr_current;
     uint16_t min_tr_current;
@@ -150,8 +151,10 @@ struct parameter_struct{
     uint8_t     qcw_offset;
     uint8_t     qcw_max;
     uint16_t    qcw_repeat;
-    uint16_t     qcw_freq;
+    uint16_t    qcw_freq;
     uint8_t     qcw_vol;
+    // Unit: 10 us
+    uint16_t    qcw_pw;
     uint16_t    burst_on;
     uint16_t    burst_off;
     uint8_t     synth;

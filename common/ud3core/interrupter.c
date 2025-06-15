@@ -154,11 +154,10 @@ void interrupter_oneshot(uint32_t pw, uint32_t vol) {
 	} else {
 		ct1_dac_val[0] = params.max_tr_cl_dac_val;
 	}
-	uint16_t prd;
 	if (pw > configuration.max_tr_pw) {
 		pw = configuration.max_tr_pw;
 	}
-    prd = param.offtime + pw;
+	uint16_t prd = param.offtime + pw;
 	/* Update Interrupter PWMs with new period/pw */
 	CyGlobalIntDisable;
 	int1_prd = prd - 3;
