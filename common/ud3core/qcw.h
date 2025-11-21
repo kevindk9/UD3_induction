@@ -47,8 +47,11 @@ ramp_params volatile ramp; //added volatile
 void qcw_start();
 void qcw_modulate(uint16_t val);
 void qcw_stop();
+void qcw_start_streaming(uint16_t initial_val);
+void qcw_update_stream_value(uint16_t val);
+void qcw_stop_streaming();
 void qcw_regenerate_ramp();
-void qcw_handle();   
+void qcw_handle();
 void qcw_handle_synth();
 
 void qcw_cmd_midi_pulse(int32_t volume, int32_t frequencyTenths);
