@@ -37,7 +37,15 @@
 
 TimerHandle_t xQCW_Timer;
 
+static uint8_t qcw_streaming = 0;
+static uint16_t qcw_stream_value = 0;
+
 void qcw_handle(){
+    if(qcw_streaming){
+        qcw_modulate(qcw_stream_value);
+        return;
+    }
+
     if(ramp.index >= ramp.stop_index){
         qcw_modulate(0);
         QCW_enable_Control = 0;
@@ -180,6 +188,35 @@ void qcw_modulate(uint16_t val){
 void qcw_stop(){
     QCW_enable_Control = 0;
     params.pwmb_psb_val = 0;
+    qcw_streaming = 0;
+}
+
+void qcw_start_streaming(uint16_t initial_val){
+    if(tt.n.dutycycle.value > configuration.max_qcw_duty) return;  //Don't command a pulse if duty is too high
+
+    qcw_streaming = 1;
+    qcw_stream_value = initial_val > 255 ? 255 : initial_val;
+
+    ramp.index = 0;
+    //the next stuff is time sensitive, so disable interrupts to avoid glitches
+    CyGlobalIntDisable;
+    //now enable the QCW interrupter
+    QCW_enable_Control = 1;
+    params.pwmb_psb_val = params.pwm_top - params.pwmb_start_psb_val;
+    CyGlobalIntEnable;
+}
+
+void qcw_update_stream_value(uint16_t val){
+    uint16_t clamped = val > 255 ? 255 : val;
+    qcw_stream_value = clamped;
+
+    if(qcw_streaming && QCW_enable_Control){
+        qcw_modulate(clamped);
+    }
+}
+
+void qcw_stop_streaming(){
+    qcw_streaming = 0;
 }
 
 uint8_t callback_rampFunction(parameter_entry * params, uint8_t index, TERMINAL_HANDLE * handle){
