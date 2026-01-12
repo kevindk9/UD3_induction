@@ -30,15 +30,13 @@
 #include "cli_common.h"
 #include "TTerm.h"
 #include "helper/teslaterm.h"
-
-#define QCW_RAMP_SAMPLES (400)
     
 typedef struct
 {
     uint8_t changed;
     uint16_t index;
     uint16_t stop_index;
-    uint8_t data[QCW_RAMP_SAMPLES];
+    uint8_t data[400];
 } ramp_params;
 
 ramp_params volatile ramp; //added volatile
@@ -47,11 +45,8 @@ ramp_params volatile ramp; //added volatile
 void qcw_start();
 void qcw_modulate(uint16_t val);
 void qcw_stop();
-void qcw_start_streaming(uint16_t initial_val);
-void qcw_update_stream_value(uint16_t val);
-void qcw_stop_streaming();
 void qcw_regenerate_ramp();
-void qcw_handle();
+void qcw_handle();   
 void qcw_handle_synth();
 
 void qcw_cmd_midi_pulse(int32_t volume, int32_t frequencyTenths);

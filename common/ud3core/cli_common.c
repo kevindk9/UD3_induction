@@ -180,7 +180,6 @@ void init_config(){
     param.qcw_ramp = 200;
     param.qcw_freq = 5000;
     param.qcw_vol = 0;
-    param.qcw_pw = 0;
     
     update_ivo();
     
@@ -212,7 +211,6 @@ parameter_entry confparam[] = {
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_max"         , param.qcw_max                 , 0      ,255    ,0      ,callback_rampFunction       ,"QCW Ramp end value")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_freq"        , param.qcw_freq                , 0      ,40000  ,10     ,callback_rampFunction       ,"QCW Ramp modulation frequency")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_vol"         , param.qcw_vol                 , 0      ,255    ,0      ,callback_rampFunction       ,"QCW Ramp modulation volume")
-    ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_pw"          , param.qcw_pw                  , 0      ,5000   ,100    ,callback_rampFunction       ,"QCW pulse width")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"qcw_repeat"      , param.qcw_repeat              , 0      ,1000   ,0      ,NULL                        ,"QCW pulse repeat time [ms] <100=single shot")
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"synth"           , param.synth                   , 0      ,3      ,0      ,callback_SynthFunction      ,"0=off 1=MIDI 2=SID 3=TR")    
     ADD_PARAM(PARAM_DEFAULT ,pdTRUE ,"sid_hpv_enabled" , SID_filterData.hpvEnabledGlobally, 0      ,1      ,0      ,NULL                     ,"use hpv for playing square sid voices")    
@@ -498,7 +496,6 @@ uint8_t callback_ConfigFunction(parameter_entry * params, uint8_t index, TERMINA
     tsk_analog_recalc_drive_top(configuration.drive_factor);
     
     if(configuration.is_qcw){
-       ramp.changed = pdTRUE;
         qcw_regenerate_ramp();   
     }
     
@@ -1004,8 +1001,8 @@ uint8_t CMD_signals(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args){
         send_signal_state_new(sysfault.charge,pdFALSE,handle);
         ttprintf("Sysfault watchdog: ");
         send_signal_state_wo_new(sysfault.watchdog,pdFALSE,handle);
-        ttprintf(" eeprom: ");
-        send_signal_state_new(sysfault.eeprom,pdFALSE,handle);
+        ttprintf(" updating: ");
+        send_signal_state_new(sysfault.update,pdFALSE,handle);
         ttprintf("Sysfault bus uvlo: ");
         send_signal_state_wo_new(sysfault.bus_uv,pdFALSE,handle);
         ttprintf(" feedback: ");
@@ -1063,28 +1060,5 @@ uint8_t CMD_signals(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args){
     TERM_sendVT100Code(handle, _VT100_RESET_ATTRIB, 0);
 
     return TERM_CMD_EXIT_SUCCESS;
-}
-
-uint8_t complete_parameter_name(TERMINAL_HANDLE * handle, void * parameters) {
-    char* prefix = pvPortMalloc(128);
-    uint8_t prefix_length;
-    memset(prefix, 0, 128);
-    handle->autocompleteStart = TERM_findLastArg(handle, prefix, &prefix_length);
-
-    uint8_t num_candidates = sizeof(confparam) / sizeof(parameter_entry);
-    handle->autocompleteBuffer = pvPortMalloc(num_candidates * sizeof(char*));
-    handle->currAutocompleteCount = 0;
-    handle->autocompleteBufferLength = 0;
-    for (uint8_t current_parameter = 0; current_parameter < num_candidates; current_parameter++) {
-        if (!confparam[current_parameter].visible) { continue; }
-        char* current_name = (char*) confparam[current_parameter].name;
-        if(strncmp(prefix, current_name, prefix_length) == 0){
-            handle->autocompleteBuffer[handle->autocompleteBufferLength] = current_name;
-            ++handle->autocompleteBufferLength;
-        }
-    }
-
-    vPortFree(prefix);
-    return handle->autocompleteBufferLength;
 }
 

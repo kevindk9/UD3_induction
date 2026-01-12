@@ -5,6 +5,6 @@
 
 void tsk_audio_Start();
 
-void simulator_process_audio(SigGen_taskData_t* data, SigGen_pulseData_t* read_pulse);
+void simulator_process_audio(SigGen_taskData_t* data);
 
 #endif

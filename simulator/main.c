@@ -86,7 +86,6 @@
 #include "tsk_audio.h"
 #include "nvm.h"
 
-void vAssertCalled( const char * const pcFileName, unsigned long ulLine );
 
 /*
  * Only the comprehensive demo uses application hook (callback) functions.  See
