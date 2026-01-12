@@ -37,7 +37,15 @@
 
 TimerHandle_t xQCW_Timer;
 
+static uint8_t qcw_streaming = 0;
+static uint16_t qcw_stream_value = 0;
+
 void qcw_handle(){
+    if(qcw_streaming){
+        qcw_modulate(qcw_stream_value);
+        return;
+    }
+
     if(ramp.index >= ramp.stop_index){
         qcw_modulate(0);
         QCW_enable_Control = 0;
@@ -58,20 +66,24 @@ void qcw_regenerate_ramp(){
     uint32_t temp_max = param.qcw_max;
     
     if((temp_max + param.qcw_vol) > 255){
-        temp_max -= ((temp_max + param.qcw_vol) - 255);  //Scale the max down to fit the volume
+        temp_max = 255 - param.qcw_vol;  //Scale the max down to fit the volume
     }
     
     if(ramp.changed){
         float ramp_val = param.qcw_offset;
+
+        uint16_t pw = param.qcw_pw;
+        if (pw > configuration.max_qcw_pw) {
+           pw = configuration.max_qcw_pw;
+        }
+        uint32_t max_active = (pw*10)/MIDI_ISR_US;
+        if (max_active > sizeof(ramp.data)) max_active = sizeof(ramp.data);
         
-        uint32_t max_index = (configuration.max_qcw_pw*10)/MIDI_ISR_US;   
-        if (max_index > sizeof(ramp.data)) max_index = sizeof(ramp.data);
-        
-        ramp.stop_index = max_index;
+        ramp.stop_index = max_active;
         
         float ramp_increment = param.qcw_ramp / 100.0;
       
-        for(uint16_t i=0;i<max_index;i++){
+        for(uint16_t i=0;i<max_active;i++){
             if(ramp_val > temp_max) ramp_val = temp_max;
             
             ramp.data[i]=floorf(ramp_val);
@@ -92,6 +104,9 @@ void qcw_regenerate_ramp(){
                 }   
             }
             
+        }
+        for (uint16_t i = max_active; i < QCW_RAMP_SAMPLES; ++i) {
+           ramp.data[i] = 0;
         }
         ramp.changed = pdFALSE;
     }
@@ -138,10 +153,12 @@ void qcw_ramp_visualize(CHART *chart, TERMINAL_HANDLE * handle){
     for(uint16_t i = 0; i<sizeof(ramp.data)-1;i++){
         send_chart_line(chart->offset_x+i,chart->height+chart->offset_y-ramp.data[i],chart->offset_x+i+1,chart->height+chart->offset_y-ramp.data[i+1], TT_COLOR_GREEN ,handle);
     }
-    uint16_t red_line;
-    red_line = configuration.max_qcw_pw*10 / MIDI_ISR_US;
-    
+
+    uint16_t red_line = configuration.max_qcw_pw*10 / MIDI_ISR_US;
     send_chart_line(chart->offset_x+red_line,chart->offset_y,chart->offset_x+red_line,chart->offset_y+chart->height, TT_COLOR_RED, handle);
+
+    uint16_t blue_line = param.qcw_pw*10 / MIDI_ISR_US;
+    send_chart_line(chart->offset_x+blue_line,chart->offset_y,chart->offset_x+blue_line,chart->offset_y+chart->height, TT_COLOR_BLUE, handle);
     
 }
 
@@ -171,6 +188,35 @@ void qcw_modulate(uint16_t val){
 void qcw_stop(){
     QCW_enable_Control = 0;
     params.pwmb_psb_val = 0;
+    qcw_streaming = 0;
+}
+
+void qcw_start_streaming(uint16_t initial_val){
+    if(tt.n.dutycycle.value > configuration.max_qcw_duty) return;  //Don't command a pulse if duty is too high
+
+    qcw_streaming = 1;
+    qcw_stream_value = initial_val > 255 ? 255 : initial_val;
+
+    ramp.index = 0;
+    //the next stuff is time sensitive, so disable interrupts to avoid glitches
+    CyGlobalIntDisable;
+    //now enable the QCW interrupter
+    QCW_enable_Control = 1;
+    params.pwmb_psb_val = params.pwm_top - params.pwmb_start_psb_val;
+    CyGlobalIntEnable;
+}
+
+void qcw_update_stream_value(uint16_t val){
+    uint16_t clamped = val > 255 ? 255 : val;
+    qcw_stream_value = clamped;
+
+    if(qcw_streaming && QCW_enable_Control){
+        qcw_modulate(clamped);
+    }
+}
+
+void qcw_stop_streaming(){
+    qcw_streaming = 0;
 }
 
 uint8_t callback_rampFunction(parameter_entry * params, uint8_t index, TERMINAL_HANDLE * handle){
@@ -192,6 +238,10 @@ uint8_t CMD_ramp(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args){
                     "       ramp draw\r\n");
         return TERM_CMD_EXIT_SUCCESS;
     } 
+    if (!configuration.is_qcw) {
+       ttprintf("Ramp control is only available for QCW coils\r\n");
+       return TERM_CMD_EXIT_SUCCESS;
+    }
     
   
     if(strcmp(args[0], "point") == 0 && argCount == 3){
@@ -219,7 +269,6 @@ uint8_t CMD_ramp(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args){
             ttprintf("Command only available with Teslaterm\r\n");
             return TERM_CMD_EXIT_SUCCESS;
         }
-        tsk_overlay_chart_stop();
         send_chart_clear(handle, "QCW ramp");
         CHART temp;
         temp.height = RAMP_CHART_HEIGHT;

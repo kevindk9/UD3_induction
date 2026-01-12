@@ -48,6 +48,7 @@ void update_visibilty(void);
 
 uint8_t CMD_signals(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args);
 uint8_t CMD_tr(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args);
+uint8_t CMD_oneshot(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args);
 uint8_t CMD_con(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args);
 uint8_t CMD_alarms(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args);
 uint8_t CMD_bootloader(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args);
@@ -77,6 +78,7 @@ struct config_struct{
     uint16_t watchdog_timeout;
     uint16_t max_tr_pw;
     uint16_t max_tr_prf;
+    // Unit: 10 us
     uint16_t max_qcw_pw;
     uint16_t max_tr_current;
     uint16_t min_tr_current;
@@ -149,8 +151,10 @@ struct parameter_struct{
     uint8_t     qcw_offset;
     uint8_t     qcw_max;
     uint16_t    qcw_repeat;
-    uint16_t     qcw_freq;
+    uint16_t    qcw_freq;
     uint8_t     qcw_vol;
+    // Unit: 10 us
+    uint16_t    qcw_pw;
     uint16_t    burst_on;
     uint16_t    burst_off;
     uint8_t     synth;
@@ -162,5 +166,7 @@ extern cli_config configuration;
 extern cli_parameter param;
 
 #define CONF_SIZE sizeof(confparam) / sizeof(parameter_entry)
+
+uint8_t complete_parameter_name(TERMINAL_HANDLE * handle, void * params);
 
 #endif

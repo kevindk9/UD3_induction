@@ -39,6 +39,7 @@
 
 #include <device.h>
 #include <math.h>
+#include <stdlib.h>
 
 uint16_t int1_prd, int1_cmp;
 
@@ -153,11 +154,10 @@ void interrupter_oneshot(uint32_t pw, uint32_t vol) {
 	} else {
 		ct1_dac_val[0] = params.max_tr_cl_dac_val;
 	}
-	uint16_t prd;
 	if (pw > configuration.max_tr_pw) {
 		pw = configuration.max_tr_pw;
 	}
-    prd = param.offtime + pw;
+	uint16_t prd = param.offtime + pw;
 	/* Update Interrupter PWMs with new period/pw */
 	CyGlobalIntDisable;
 	int1_prd = prd - 3;
@@ -334,6 +334,31 @@ uint8_t CMD_tr(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args) {
         ttprintf("Transient Disabled\r\n");    
  
 	}
+    return TERM_CMD_EXIT_SUCCESS;
+}
+
+/**Triggers a single TR/classic pulse with the specified ontime and volume. Volume is interpreted as SigGen volume, i.e.
+ * from 0 to INT16_MAX.
+ */
+uint8_t CMD_oneshot(TERMINAL_HANDLE * handle, uint8_t argCount, char ** args) {
+    if (argCount != 2) {
+        ttprintf("Usage: oneshot <ontime> <volume>\n\r");
+        return TERM_CMD_EXIT_ERROR;
+    }
+    char* end_ptr = 0;
+    unsigned ontime_us = strtoul(args[0], &end_ptr, 10);
+    unsigned volume = strtoul(args[1], &end_ptr, 10);
+    if (ontime_us == 0 || volume == 0) {
+        ttprintf("Expected volume and ontime to be positive\n\r");
+        return TERM_CMD_EXIT_ERROR;
+    }
+    SigGen_pulseData_t pulse = {
+        // Does not matter for single shot, just make it "big enough" for the siggen to be happy
+        .period = SIGGEN_MIN_PERIOD,
+        .onTime = ontime_us,
+        .current = volume,
+    };
+    SigGen_queuePulse(&pulse);
     return TERM_CMD_EXIT_SUCCESS;
 }
 
